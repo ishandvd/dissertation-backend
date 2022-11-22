@@ -1,10 +1,8 @@
+import numpy as np
+from scipy.special import rel_entr
 
 
 
-WD_update = False
-HD_update = False
-WH_update = False 
-HH_update = False
 
 def PfNmf(X, param):
     """
@@ -13,37 +11,70 @@ def PfNmf(X, param):
     "PfNMF: A Nonnegative Matrix Factorization Algorithm for the Analysis of Polyphonic Audio"
     by S. Uhlich, M. Dörfler, and M. E. P. Davies.
     """
-    global WD_update
-    global HD_update
-    global WH_update
-    global HH_update
-
-    # initialize variables
     WD = param['WD']
-    HD = np.zeros((WD.shape[1], X.shape[1]))
-    WH = np.zeros((WD.shape[0], X.shape[1]))
-    HH = np.zeros((WD.shape[0], X.shape[1]))
-    err = np.zeros(param['maxIter'])
 
-    # iterate
-    for i in range(param['maxIter']):
-        # update WD
-        if WD_update:
-            WD = updateWD(X, WH, HD, param)
-        # update HD
+    [numFreqX, numFrames] = np.shape(X)
+    [numFreqD, rd] = np.shape(WD)
+
+    WD_update = False
+    HD_update = False
+    WH_update = False 
+    HH_update = False
+
+    WH = np.random.uniform(size=(numFreqD, param["rh"]))
+    [numFreqH, _] = np.shape(WH)
+    WH_update = True
+
+    HD = np.random.uniform(size=(rd, numFrames))
+    HD_update = True
+
+    HH = np.random.uniform(size=(param["rh"], numFrames))
+    HH_update = True
+
+    alpha = (param["rh"] + rd) / rd
+    beta = param["rh"] / (param["rh"] + rd) 
+        
+    # normalize W / H matrix
+    for i in range(rd):
+        WD[:,i] = WD[:,i] / np.sum(WD[:,i], axis=0)
+    
+    for i in range(param["rh"]):
+        WH[:,i] = WH[:,i] / np.sum(WH[:,i], axis=0)
+
+    count = 0
+    rep = np.ones(shape=(numFreqX, numFrames))
+    err = [0.0]
+
+
+    while(count < 300): 
+
+        approx = alpha * np.matmul(WD,HD) + beta * np.matmul(WH,HH)
+
         if HD_update:
-            HD = updateHD(X, WH, WD, param)
-        # update WH
-        if WH_update:
-            WH = updateWH(X, WH, HD, WD, param)
-        # update HH
+            HD = HD * (np.matmul(np.transpose(alpha * WD), (X / approx)) / (np.matmul(np.transpose(alpha * WD), rep) + param["sparsity"]))
+
         if HH_update:
-            HH = updateHH(X, WH, HD, WD, param)
-        # update error
-        err[i] = np.linalg.norm(X - WH - HH, 'fro') / np.linalg.norm(X, 'fro')
+            HH = HH * (np.matmul(np.transpose(beta * WH), (X / approx)) / np.matmul(np.transpose(beta * WH), rep))
 
-    return [WD, HD, WH, HH, err]
+        if WD_update:
+            WD = WD * (np.matmul(X / approx, np.transpose(alpha * HD)) / np.matmul(rep, np.transpose(alpha * HD)))
+        
+        if WH_update:
+            WH = WH * (np.matmul(X / approx, np.transpose(beta * HH)) / np.matmul(rep, np.transpose(beta * HH)))
 
+        # normalize W / H matrix
+        for i in range(rd):
+            WD[:,i] = WD[:,i] / np.sum(WD[:,i], axis=0)
+    
+        for i in range(param["rh"]):
+            WH[:,i] = WH[:,i] / np.sum(WH[:,i], axis=0)
 
+        count += 1
+        err.append(np.sum(rel_entr(X, alpha * np.matmul(WD,HD) + beta * np.matmul(WH,HH))))
+
+        if count > 1:
+            # if err[count] > err[count-1]:
+            #     break
+            print(err[count - 1] - err[count - 2])
 
     

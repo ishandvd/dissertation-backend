@@ -1030,4 +1030,4 @@ wd_str = [['0.0315', '4.0319', '0.1234'],
 wd = list(map(lambda x: list(map(lambda y: float(y), x)), wd_str))
 
 wd = np.array(wd)
-wd = np.transpose(wd)
+# wd = np.transpose(wd)
