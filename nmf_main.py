@@ -57,6 +57,9 @@ def NmfDrum(filepath, method='PfNmf'):
     # run NMF
     if method == 'PfNmf':
         [WD, HD, WH, HH, err] = PfNmf(X, param)
+    
+    print(HD)
+
     # elif method == 'Nmf':
     #     W, H = Nmf(features, param)
     # else:

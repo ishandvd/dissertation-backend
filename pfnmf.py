@@ -73,8 +73,9 @@ def PfNmf(X, param):
         err.append(np.sum(rel_entr(X, alpha * np.matmul(WD,HD) + beta * np.matmul(WH,HH))))
 
         if count > 1:
-            # if err[count] > err[count-1]:
-            #     break
-            print(err[count - 1] - err[count - 2])
-
+            decider = np.abs((err[count - 1] - err[count - 2]) / (err[0] - err[count - 1] + np.finfo(float).tiny))
+            print(decider)
+            if decider < 0.001:
+                break
     
+    return [WD, HD, WH, HH, err]
