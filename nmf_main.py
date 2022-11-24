@@ -21,6 +21,8 @@ import soundfile as sf
 from matplotlib import mlab
 import numpy as np
 from pfnmf import *
+from onset_detection import *
+from nmfd import *
 
 
 # output an array of times for high-hat, snare, and kick
@@ -47,6 +49,12 @@ param = {
 def NmfDrum(filepath, method='PfNmf'):
     # What happens when we round x before doing stft?
     (x, fs) = sf.read(filepath)
+    newFs = 44100
+    timeLen = len(x) / fs
+    newSamples = int(newFs * timeLen)
+    x = signal.resample(x, newSamples)
+    fs = newFs
+
     overlap = param["windowSize"] - param["hopSize"]
     window = np.hamming(param["windowSize"])
     [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
@@ -57,8 +65,19 @@ def NmfDrum(filepath, method='PfNmf'):
     # run NMF
     if method == 'PfNmf':
         [WD, HD, WH, HH, err] = PfNmf(X, param)
+    if method == 'NmfD':
+        [PD, HD] = NmfD(X, param)
     
     print(HD)
+
+    for i in range(3):
+        plt.plot(HD[i,:])
+    
+    plt.show()
+    print("WD: ")
+    # onset_times = OnsetDetection(HD, fs, param)
+
+    # plt.plot(onset_times[0])
 
     # elif method == 'Nmf':
     #     W, H = Nmf(features, param)
@@ -79,6 +98,7 @@ def NmfDrum(filepath, method='PfNmf'):
 
 
 if __name__ == "__main__":
-    NmfDrum("test_audio.wav")
+    # NmfDrum("test_audio.wav")
+    NmfDrum("C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/RealDrum01_03#MIX.wav", method='NmfD')
 
     # (abs(err(count) - err(count -1 )) / (err(1) - err(count) + realmin)) < 0.001
