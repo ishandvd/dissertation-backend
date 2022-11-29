@@ -69,9 +69,19 @@ def NmfDrum(filepath, method='PfNmf'):
         [PD, HD] = NmfD(X, param)
     
     print(HD)
+    times = []
+
+    fig,ax = plt.subplots(3)
+
+    for i in range(len(HD)):
+        ax[i].plot(HD[i])
 
     for i in range(3):
-        plt.plot(HD[i,:])
+        hopTime = param["hopSize"] / fs
+        (px,_) = signal.find_peaks(HD[i], height=np.max(HD[i])/3, distance=2)
+        times.append(px * hopTime)
+        ax[i].scatter(px, [HD[i][j] for j in px])
+    
     
     plt.show()
     print("WD: ")
@@ -99,6 +109,7 @@ def NmfDrum(filepath, method='PfNmf'):
 
 if __name__ == "__main__":
     # NmfDrum("test_audio.wav")
-    NmfDrum("C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/RealDrum01_03#MIX.wav", method='NmfD')
+    NmfDrum("C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/RealDrum01_03#MIX.wav")
+
 
     # (abs(err(count) - err(count -1 )) / (err(1) - err(count) + realmin)) < 0.001
