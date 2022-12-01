@@ -1,20 +1,3 @@
-# x = sf.read('test_audio.wav')
-# windowSize = 2048
-# hopSize = 512
-# overlap = 2048 - 512
-# from matplotlib import mlab
-# (a,b) = x
-# import numpy as np
-# window = np.hamming(windowSize)
-# [s,f,t] = mlab.specgram(a, NFFT=windowSize, Fs=b, window = window, noverlap=overlap, mode='complex')
-# sabs = abs(s)
-
-#X = mlab.specgram(x, NFFT=param["windowSize"], window=windowHamming, noverlap=overlap, mode="complex")
-# (X,f,t) = X
-# plt.pcolormesh(t,f,np.abs(X))
-# plt.savefigure("t.png")
-
-
 from sample_wd2 import *
 import matplotlib.pyplot as plt
 import soundfile as sf
@@ -23,14 +6,12 @@ import numpy as np
 from pfnmf import *
 from onset_detection import *
 from nmfd import *
-
+from DTW import *
 
 # output an array of times for high-hat, snare, and kick
 
 print("WD: ")
 print(wd)
-
-
 
 
 param = {
@@ -70,46 +51,26 @@ def NmfDrum(filepath, method='PfNmf'):
     
     print(HD)
     times = []
+    pxs = []
 
     fig,ax = plt.subplots(3)
 
-    for i in range(len(HD)):
-        ax[i].plot(HD[i])
+    # for i in range(len(HD)):
+        # ax[i].plot(HD[i])
 
     for i in range(3):
         hopTime = param["hopSize"] / fs
-        (px,_) = signal.find_peaks(HD[i], height=np.max(HD[i])/3, distance=2)
+        (px,_) = signal.find_peaks(HD[i], height=np.max(HD[i])/3, distance=6)
+        pxs.append(px)
         times.append(px * hopTime)
-        ax[i].scatter(px, [HD[i][j] for j in px])
+        # ax[i].scatter(px, [HD[i][j] for j in px])
     
     
-    plt.show()
+    # plt.show()
+    dtw_matching()
     print("WD: ")
-    # onset_times = OnsetDetection(HD, fs, param)
-
-    # plt.plot(onset_times[0])
-
-    # elif method == 'Nmf':
-    #     W, H = Nmf(features, param)
-    # else:
-    #     print('Error: method not found')
-    #     return
-    
-
-
-    # get drum times, requires onset detection
-
-    # times = get_drum_times(W, H, sr)
-
-
-
-    # output array of times for high-hat, snare, and kick
-
 
 
 if __name__ == "__main__":
     # NmfDrum("test_audio.wav")
-    NmfDrum("C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/RealDrum01_03#MIX.wav")
-
-
-    # (abs(err(count) - err(count -1 )) / (err(1) - err(count) + realmin)) < 0.001
+    NmfDrum("C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_03#MIX.wav")
