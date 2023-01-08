@@ -1,23 +1,24 @@
-from median_thres import *
 from scipy import signal
+import matplotlib.pyplot as plt
+import numpy as np
 
 
-def OnsetDetection(HD, fs, param):
+def onset_detection(HD, fs, param, plot_activations_and_peaks=False):
+    '''Returns the times of the peaks in the activations of the drums'''
+    times = []
+    pxs = []
 
-    (numDrum, numFrames) = np.shape(HD)
+    if plot_activations_and_peaks:
+        fig,ax = plt.subplots(3)
+        for i in range(len(HD)):
+            ax[i].plot(HD[i])
 
-    myTmpResults = []
-    myTmpTrans = []
-    order = [np.floor(i * fs / param["hopSize"]) for i in param["order"]]
+    for i in range(3):
+        hopTime = param["hopSize"] / fs
+        (px,_) = signal.find_peaks(HD[i], height=np.max(HD[i])/3, distance=6)
+        pxs.append(px)
+        times.append(px * hopTime)
+        if plot_activations_and_peaks:
+            ax[i].scatter(px, [HD[i][j] for j in px])
 
-    for i in range(numDrum):
-        nvt = HD[i]
-        myTmpResults[i] = signal.find_peaks_cwt(nvt, np.arange(1,10))
-        # order_current = order[i]
-        # lambda_current = param["lambda"][i]
-
-        # threshold = median_thres(nvt, order_current, lambda_current)
-
-
-
-    return myTmpResults
+    return (times, pxs)

@@ -1,4 +1,4 @@
-from sample_wd2 import *
+from sample_wd import *
 import matplotlib.pyplot as plt
 import soundfile as sf
 from matplotlib import mlab
@@ -7,15 +7,20 @@ from pfnmf import *
 from onset_detection import *
 from nmfd import *
 from DTW import *
+from NMF_training import *
 
-# output an array of times for high-hat, snare, and kick
 
-print("WD: ")
-print(wd)
+use_custom_training = True
+plot_activations_and_peaks = True
+
+if use_custom_training:
+    wd = getWD("./test_data/RealDrum01_00#HH#train.wav", 
+                "./test_data/RealDrum01_00#KD#train.wav", 
+                "./test_data/RealDrum01_00#SD#train.wav")
 
 
 param = {
-    "WD": wd, # from sample_wd2.py
+    "WD": wd,
     "windowSize": 2048,
     "hopSize": 512,
     "lambda": [0.1200, 0.1200, 0.1200],
@@ -28,49 +33,35 @@ param = {
 
 
 def NmfDrum(filepath, method='PfNmf'):
-    # What happens when we round x before doing stft?
+    # Open File
     (x, fs) = sf.read(filepath)
     newFs = 44100
     timeLen = len(x) / fs
+    # Resample to 44100 Hz
     newSamples = int(newFs * timeLen)
     x = signal.resample(x, newSamples)
     fs = newFs
 
+    # X = W * H
     overlap = param["windowSize"] - param["hopSize"]
     window = np.hamming(param["windowSize"])
     [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
     X = np.abs(X)
-    print("X: ")
-    print(X)
     
-    # run NMF
     if method == 'PfNmf':
         [WD, HD, WH, HH, err] = PfNmf(X, param)
-    if method == 'NmfD':
+        print(HD)
+        (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
+    
+    elif method == 'NmfD':
         [PD, HD] = NmfD(X, param)
     
-    print(HD)
-    times = []
-    pxs = []
-
-    fig,ax = plt.subplots(3)
-
-    # for i in range(len(HD)):
-        # ax[i].plot(HD[i])
-
-    for i in range(3):
-        hopTime = param["hopSize"] / fs
-        (px,_) = signal.find_peaks(HD[i], height=np.max(HD[i])/3, distance=6)
-        pxs.append(px)
-        times.append(px * hopTime)
-        # ax[i].scatter(px, [HD[i][j] for j in px])
-    
-    
-    # plt.show()
     dtw_matching()
-    print("WD: ")
+    
+    if plot_activations_and_peaks:
+        plt.show()
 
 
 if __name__ == "__main__":
-    # NmfDrum("test_audio.wav")
+    # NmfDrum("./test_data/test_audio.wav")
     NmfDrum("C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_03#MIX.wav")
