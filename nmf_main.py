@@ -56,10 +56,12 @@ def NmfDrum(filepath, method='PfNmf'):
     elif method == 'NmfD':
         [PD, HD] = NmfD(X, param)
     
-    dtw_matching()
+    # dtw_matching()
     
     if plot_activations_and_peaks:
         plt.show()
+    
+    return times
 
 
 if __name__ == "__main__":
