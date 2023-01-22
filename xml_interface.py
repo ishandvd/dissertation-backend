@@ -17,18 +17,24 @@ def onsets(drum, events_list):
 
     return onsets
 
-f = minidom.parse(filename)
-mix = f.getElementsByTagName("audioFileName")[0]
-print("Audio File Name: ", mix.firstChild.data)
-training = f.getElementsByTagName("audioTrainingFileName")
+def training_files_and_mix(filename):
+    f = minidom.parse(filename)
+    mix = f.getElementsByTagName("audioFileName")[0].firstChild.data
+    training = f.getElementsByTagName("audioTrainingFileName")
 
-(hh, sd, kd) = (drum_file("#HH#", training), 
-                drum_file("#sD#", training), 
-                drum_file("#KD#", training))
+    (hh_train, sd_train, kd_train) = (drum_file("#HH#", training), 
+                    drum_file("#SD#", training), 
+                    drum_file("#KD#", training))
+    
+    return (hh_train, sd_train, kd_train, mix)
 
-events = f.getElementsByTagName("event")
 
-(hh_onsets, sd_onsets, kd_onsets) = (onsets("HH", events),
-                                    onsets("SD", events),
+def onset_times(filename):
+    f = minidom.parse(filename)
+    events = f.getElementsByTagName("event")
+
+    (hh_onsets, sd_onsets, kd_onsets) = (onsets("HH", events),
+                                        onsets("SD", events),
                                     onsets("KD", events))
 
+    return (hh_onsets, sd_onsets, kd_onsets)

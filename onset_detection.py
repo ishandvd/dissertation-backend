@@ -10,8 +10,10 @@ def onset_detection(HD, fs, param, plot_activations_and_peaks=False):
 
     if plot_activations_and_peaks:
         fig,ax = plt.subplots(3)
+        fig.tight_layout(pad=5.0)
         for i in range(len(HD)):
             ax[i].plot(HD[i])
+            ax[i].title.set_text("HH" if i == 0 else "KD" if i == 1 else "SD")
 
     for i in range(3):
         hopTime = param["hopSize"] / fs

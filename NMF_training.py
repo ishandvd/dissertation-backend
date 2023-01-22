@@ -4,6 +4,9 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import librosa.display
 
+audio_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/"
+
+
 def msToFrames(ms, fs):
     '''Converts milliseconds to frames'''
     return int(ms * fs / 1000)
