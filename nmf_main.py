@@ -58,7 +58,6 @@ def NmfDrum(
     
     if method == 'PfNmf':
         [WD, HD, WH, HH, err] = PfNmf(X, param)
-        print(HD)
         (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
     
     elif method == 'NmfD':
@@ -68,12 +67,12 @@ def NmfDrum(
     (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath)
     f = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
     print("--------------------")
-    print("F-measure: " + str(f))
+    print('F-measure: %(f).3f')
 
     if plot_ground_truth_and_estimates:
         fig2, ax2 = plt.subplots(3)
         fig2.tight_layout(pad=5.0)
-        # fig2.suptitle("Ground Truth and Estimates, F-Measure: " + str(f), fontsize=16)
+        fig2.suptitle('Ground Truth and Estimates, F-Measure: %().3f', fontsize=16)
         for i in range(3):
             ax2[i].scatter(times[i], np.ones(len(times[i])), c='red')
             if i == 0:

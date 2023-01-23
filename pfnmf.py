@@ -1,8 +1,10 @@
 import numpy as np
 from scipy.special import rel_entr
+from loading_bar import *
 
 
-
+bar = SlowBar()
+goal = 0.001
 
 def PfNmf(X, param):
     """
@@ -74,8 +76,8 @@ def PfNmf(X, param):
 
         if count > 1:
             decider = np.abs((err[count - 1] - err[count - 2]) / (err[0] - err[count - 1] + np.finfo(float).tiny))
-            print(decider)
-            if decider < 0.001:
+            bar.updateKL(decider, goal) 
+            if decider < goal:
                 break
     
     return [WD, HD, WH, HH, err]
