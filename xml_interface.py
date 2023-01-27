@@ -1,9 +1,5 @@
 from xml.dom import minidom
 
-filename = "C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/annotation_xml/WaveDrum02_03#MIX.xml"
-
-
-
 def drum_file(drum, t):
     drum_file_name = [x.firstChild.data for x in t
     if drum in x.firstChild.data]

@@ -24,4 +24,4 @@ def f_measure(times, hh_onsets, kd_onsets, sd_onsets, tolerance):
     recall = true_positives_total / (len(hh_onsets) + len(kd_onsets) + len(sd_onsets))
     f_measure = 2 * precision * recall / (precision + recall)
 
-    return f_measure
+    return f_measure, precision, recall

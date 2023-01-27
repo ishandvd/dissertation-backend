@@ -1,3 +1,4 @@
+import os
 from sample_wd import *
 import matplotlib.pyplot as plt
 import soundfile as sf
@@ -34,9 +35,24 @@ def NmfDrum(
     plot_ground_truth_and_estimates=True,
     use_custom_training=True):
 
+    if not os.path.isfile(annotation_folder + filepath):
+        print("xml file not found")
+        return [], 0, 0, 0
+
     (hh_train, sd_train, kd_train, mix) = training_files_and_mix(annotation_folder + filepath)
 
+    if not os.path.isfile(audio_folder + mix):
+        print("Mix file not found")
+        return [], 0, 0, 0
+
     if use_custom_training:
+        if not (
+            os.path.isfile(audio_folder + hh_train) and 
+            os.path.isfile(audio_folder + kd_train) and 
+            os.path.isfile(audio_folder + sd_train)):
+            print("Training files not found")
+            return [], 0, 0, 0
+        
         param["WD"] = getWD(audio_folder + hh_train, 
                             audio_folder + kd_train, 
                             audio_folder + sd_train)
@@ -65,14 +81,12 @@ def NmfDrum(
     
     # dtw_matching()
     (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath)
-    f = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
-    print("--------------------")
-    print('F-measure: %(f).3f')
+    f, precision, recall = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
 
     if plot_ground_truth_and_estimates:
         fig2, ax2 = plt.subplots(3)
         fig2.tight_layout(pad=5.0)
-        fig2.suptitle('Ground Truth and Estimates, F-Measure: %().3f', fontsize=16)
+        fig2.suptitle('Ground Truth and Estimates, F-Measure: %(f).3f', fontsize=16)
         for i in range(3):
             ax2[i].scatter(times[i], np.ones(len(times[i])), c='red')
             if i == 0:
@@ -88,11 +102,8 @@ def NmfDrum(
     if plot_activations_and_peaks or plot_ground_truth_and_estimates:
         plt.show()
     
-    print("dummy")
-
-    return times
+    return times, f, precision, recall
 
 
-if __name__ == "__main__":
-    # NmfDrum("./test_data/test_audio.wav")
-    NmfDrum()
+# if __name__ == "__main__":
+#     NmfDrum()
