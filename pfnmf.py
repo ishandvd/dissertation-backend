@@ -4,7 +4,7 @@ from loading_bar import *
 
 
 bar = SlowBar()
-goal = 0.001
+goal = 0.002
 
 def PfNmf(X, param):
     """

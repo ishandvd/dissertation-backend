@@ -37,13 +37,13 @@ def NmfDrum(
 
     if not os.path.isfile(annotation_folder + filepath):
         print("xml file not found")
-        return [], 0, 0, 0
+        return [], 0, 0, 0, 0
 
     (hh_train, sd_train, kd_train, mix) = training_files_and_mix(annotation_folder + filepath)
 
     if not os.path.isfile(audio_folder + mix):
         print("Mix file not found")
-        return [], 0, 0, 0
+        return [], 0, 0, 0, 0
 
     if use_custom_training:
         if not (
@@ -51,7 +51,7 @@ def NmfDrum(
             os.path.isfile(audio_folder + kd_train) and 
             os.path.isfile(audio_folder + sd_train)):
             print("Training files not found")
-            return [], 0, 0, 0
+            return [], 0, 0, 0, 0
         
         param["WD"] = getWD(audio_folder + hh_train, 
                             audio_folder + kd_train, 
@@ -65,6 +65,8 @@ def NmfDrum(
     newSamples = int(newFs * timeLen)
     x = signal.resample(x, newSamples)
     fs = newFs
+
+    # split x into n chunks, then stitch the times together after onset detection
 
     # X = W * H
     overlap = param["windowSize"] - param["hopSize"]
@@ -102,8 +104,11 @@ def NmfDrum(
     if plot_activations_and_peaks or plot_ground_truth_and_estimates:
         plt.show()
     
-    return times, f, precision, recall
+
+    mix_length = len(x) / fs
+
+    return times, f, precision, recall, mix_length
 
 
-# if __name__ == "__main__":
-#     NmfDrum()
+if __name__ == "__main__":
+    NmfDrum()
