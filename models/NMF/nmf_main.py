@@ -11,6 +11,10 @@ from DTW import *
 from NMF_training import *
 from xml_interface import *
 from measures import *
+import time
+from datetime import timedelta
+from joblib import Parallel, delayed
+import csv
 
 param = {
     "WD": wd, # Set to Default data from sample_wd initially
@@ -27,13 +31,33 @@ param = {
 audio_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/"
 annotation_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/annotation_xml/"
 
+def split(a, n):
+    k, m = divmod(len(a), n)
+    return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
+
+def getHD(x, method):
+    overlap = param["windowSize"] - param["hopSize"]
+    window = np.hamming(param["windowSize"])
+    [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
+    X = np.abs(X)
+    
+    if method == 'PfNmf':
+        [WD, HD, WH, HH, err] = PfNmf(X, param)
+    elif method == 'NmfD':
+        [PD, HD] = NmfD(X, param)
+    
+    
+    return HD
+
+
 # Give xml file, plot activations and peaks, use custom training, return times
 def NmfDrum(
     filepath="WaveDrum02_03#MIX.xml", 
     method='PfNmf',
     plot_activations_and_peaks=True,
     plot_ground_truth_and_estimates=True,
-    use_custom_training=True):
+    use_custom_training=True,
+    num_chunks=1):
 
     if not os.path.isfile(annotation_folder + filepath):
         print("xml file not found")
@@ -66,20 +90,24 @@ def NmfDrum(
     x = signal.resample(x, newSamples)
     fs = newFs
 
-    # split x into n chunks, then stitch the times together after onset detection
+    # split x into n chunks, then stitch the activation functions together
+    xs = list(split(x, num_chunks))
+    HDs = np.array(Parallel(n_jobs=-1)(delayed(getHD)(x_sub, "PfNmf") for x_sub in xs))
+    HD = np.concatenate(HDs, axis=1)
+    (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
 
-    # X = W * H
-    overlap = param["windowSize"] - param["hopSize"]
-    window = np.hamming(param["windowSize"])
-    [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
-    X = np.abs(X)
+    # # X = W * H
+    # overlap = param["windowSize"] - param["hopSize"]
+    # window = np.hamming(param["windowSize"])
+    # [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
+    # X = np.abs(X)
     
-    if method == 'PfNmf':
-        [WD, HD, WH, HH, err] = PfNmf(X, param)
-        (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
+    # if method == 'PfNmf':
+    #     [WD, HD, WH, HH, err] = PfNmf(X, param)
+    #     (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
     
-    elif method == 'NmfD':
-        [PD, HD] = NmfD(X, param)
+    # elif method == 'NmfD':
+    #     [PD, HD] = NmfD(X, param)
     
     # dtw_matching()
     (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath)
@@ -107,8 +135,27 @@ def NmfDrum(
 
     mix_length = len(x) / fs
 
-    return times, f, precision, recall, mix_length
+    return times, f, precision, recall, mix_length, HD.shape[1]
 
 
 if __name__ == "__main__":
     NmfDrum()
+    
+    # with open('nmf_results_num_chunks.csv', 'w', newline='') as csvfile:
+    #     writer = csv.writer(csvfile, delimiter=',')
+    #     writer.writerow(['Num Chunks', 'F-Score', 'HDs Total Length', 'Compute Time'])
+    #     # Parameter Optimization Over Num Chunks
+    #     for i in range(1,20):
+    #         start_time = time.monotonic()
+    #         times, f, _,_,_,HD_len = NmfDrum(
+    #             plot_activations_and_peaks=False,
+    #             plot_ground_truth_and_estimates=False,
+    #             use_custom_training=False,
+    #             num_chunks=i)
+    #         end_time = time.monotonic()
+    #         print(
+    #         "\n\nNum Chunks: ",i,
+    #         " Compute time: ", timedelta(seconds=end_time - start_time).total_seconds(),
+    #         " f-score: ", f,
+    #         " HDs Total Length: ", HD_len)
+    #         writer.writerow([i, f, HD_len, timedelta(seconds=end_time - start_time).total_seconds()])
