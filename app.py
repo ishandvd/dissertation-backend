@@ -1,8 +1,19 @@
 from datetime import datetime
 from flask import Flask, request
 import os
-app = Flask(__name__)
+import time
+from werkzeug.utils import secure_filename
 
+UPLOAD_FOLDER = './audio_uploads'
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+ALLOWED_EXTENSIONS = {'wav'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def index():
@@ -13,18 +24,14 @@ def index():
 @app.route('/audio-upload', methods=['POST'])
 def audio_upload():
     print('Request for audio upload received', request.content_type)
-    if request.content_type == 'audio/wav':
-        # Get the raw .wav file data from the request body
-        file_data = request.data
-
-        # Save the .wav file to disk
-        with open('audio.wav', 'wb') as f:
-            f.write(file_data)
-
-        return 'Audio uploaded successfully', 200
-    else:
-        return 'Unsupported media type', 415
-
+    if request.method == 'POST':
+        # check if the post request has the file part
+        print(request.files['wavfile'])
+        file = request.files['wavfile']
+        if file and allowed_file(file.filename):
+            filename = time.strftime("%Y%m%d-%H%M%S") + secure_filename(file.filename) 
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        return {"status": "ok", "message": "Hello World!"}, 200
 
 if __name__ == '__main__':
    app.run(debug=True)
