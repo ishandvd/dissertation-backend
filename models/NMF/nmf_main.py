@@ -30,6 +30,7 @@ param = {
 
 audio_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/"
 annotation_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/annotation_xml/"
+phone_recording_folder = r"C:/Cambridge/3rd Year\dissertation/IDMT-SMT-DRUMS-V2/audio/phone_recordings/"
 
 def split(a, n):
     k, m = divmod(len(a), n)
@@ -49,40 +50,76 @@ def getHD(x, method):
     
     return HD
 
+def plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets):
+    fig2, ax2 = plt.subplots(3)
+    fig2.tight_layout(pad=5.0)
+    fig2.suptitle('Ground Truth and Estimates, F-Measure: %(f).3f', fontsize=16)
+    for i in range(3):
+        ax2[i].scatter(times[i], np.ones(len(times[i])), c='red')
+        if i == 0:
+            ax2[i].scatter(hh_onsets, np.ones(len(hh_onsets)), c='blue')
+            ax2[i].title.set_text("HH")
+        elif i == 1:
+            ax2[i].scatter(kd_onsets, np.ones(len(kd_onsets)), c='blue')
+            ax2[i].title.set_text("KD")
+        elif i == 2:
+            ax2[i].scatter(sd_onsets, np.ones(len(sd_onsets)), c='blue')
+            ax2[i].title.set_text("SD")
+
+# Returns error message and mix file
+def open_files(filepath_list, use_custom_training):
+    filepath = filepath_list[0]
+    if filepath.endswith(".xml"):
+        if not os.path.isfile(annotation_folder + filepath):
+            print("xml file not found")
+            return "xml file not found", ""
+
+        (hh_train, sd_train, kd_train, mix) = training_files_and_mix(annotation_folder + filepath)
+        hh_train = audio_folder + hh_train
+        kd_train = audio_folder + kd_train
+        sd_train = audio_folder + sd_train
+        mix = audio_folder + mix
+        
+    elif filepath.endswith(".wav"):
+        mix = phone_recording_folder + filepath
+        if use_custom_training:
+            hh_train = phone_recording_folder + filepath_list[1]
+            kd_train = phone_recording_folder + filepath_list[2]
+            sd_train = phone_recording_folder + filepath_list[3]
+
+    if not os.path.isfile(mix):
+        print("Mix file not found")
+        return "Mix file not found", ""
+
+    if use_custom_training:
+        if not (
+            os.path.isfile(hh_train) and 
+            os.path.isfile(kd_train) and 
+            os.path.isfile(sd_train)):
+            print("Training files not found")
+            return "Training files not found", ""
+        
+        param["WD"] = getWD(hh_train, kd_train, sd_train)
+    
+    return "", mix
 
 # Give xml file, plot activations and peaks, use custom training, return times
 def NmfDrum(
-    filepath="WaveDrum02_03#MIX.xml", 
+    filepath_list=["WaveDrum02_03#MIX.xml"], 
     method='PfNmf',
     plot_activations_and_peaks=True,
     plot_ground_truth_and_estimates=True,
     use_custom_training=True,
     num_chunks=1):
 
-    if not os.path.isfile(annotation_folder + filepath):
-        print("xml file not found")
-        return [], 0, 0, 0, 0
+    # Open files
+    error, mix = open_files(filepath_list, use_custom_training)
+    if error != "":
+        return [], 0, 0, 0, 0, 0
 
-    (hh_train, sd_train, kd_train, mix) = training_files_and_mix(annotation_folder + filepath)
-
-    if not os.path.isfile(audio_folder + mix):
-        print("Mix file not found")
-        return [], 0, 0, 0, 0
-
-    if use_custom_training:
-        if not (
-            os.path.isfile(audio_folder + hh_train) and 
-            os.path.isfile(audio_folder + kd_train) and 
-            os.path.isfile(audio_folder + sd_train)):
-            print("Training files not found")
-            return [], 0, 0, 0, 0
-        
-        param["WD"] = getWD(audio_folder + hh_train, 
-                            audio_folder + kd_train, 
-                            audio_folder + sd_train)
-
-    # Open File
-    (x, fs) = sf.read(audio_folder + mix)
+    (x, fs) = sf.read(mix)
+    # Mix down to mono
+    x = np.mean(x, axis=1)
     newFs = 44100
     timeLen = len(x) / fs
     # Resample to 44100 Hz
@@ -96,38 +133,18 @@ def NmfDrum(
     HD = np.concatenate(HDs, axis=1)
     (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
 
-    # # X = W * H
-    # overlap = param["windowSize"] - param["hopSize"]
-    # window = np.hamming(param["windowSize"])
-    # [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
-    # X = np.abs(X)
-    
-    # if method == 'PfNmf':
-    #     [WD, HD, WH, HH, err] = PfNmf(X, param)
-    #     (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
-    
-    # elif method == 'NmfD':
-    #     [PD, HD] = NmfD(X, param)
-    
-    # dtw_matching()
-    (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath)
-    f, precision, recall = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
+    # Can only calculate f-measure if ground truth is available
+    # Can only plot ground truth if ground truth is available, else just use blanks
+    if filepath_list[0].endswith(".xml"):
+        (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath_list[0])
+        f, precision, recall = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
+    else:
+        hh_onsets, sd_onsets, kd_onsets = [], [], []
+        f, precision, recall = 0, 0, 0
+
 
     if plot_ground_truth_and_estimates:
-        fig2, ax2 = plt.subplots(3)
-        fig2.tight_layout(pad=5.0)
-        fig2.suptitle('Ground Truth and Estimates, F-Measure: %(f).3f', fontsize=16)
-        for i in range(3):
-            ax2[i].scatter(times[i], np.ones(len(times[i])), c='red')
-            if i == 0:
-                ax2[i].scatter(hh_onsets, np.ones(len(hh_onsets)), c='blue')
-                ax2[i].title.set_text("HH")
-            elif i == 1:
-                ax2[i].scatter(kd_onsets, np.ones(len(kd_onsets)), c='blue')
-                ax2[i].title.set_text("KD")
-            elif i == 2:
-                ax2[i].scatter(sd_onsets, np.ones(len(sd_onsets)), c='blue')
-                ax2[i].title.set_text("SD")
+        plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets)
     
     if plot_activations_and_peaks or plot_ground_truth_and_estimates:
         plt.show()
@@ -136,26 +153,3 @@ def NmfDrum(
     mix_length = len(x) / fs
 
     return times, f, precision, recall, mix_length, HD.shape[1]
-
-
-if __name__ == "__main__":
-    NmfDrum()
-    
-    # with open('nmf_results_num_chunks.csv', 'w', newline='') as csvfile:
-    #     writer = csv.writer(csvfile, delimiter=',')
-    #     writer.writerow(['Num Chunks', 'F-Score', 'HDs Total Length', 'Compute Time'])
-    #     # Parameter Optimization Over Num Chunks
-    #     for i in range(1,20):
-    #         start_time = time.monotonic()
-    #         times, f, _,_,_,HD_len = NmfDrum(
-    #             plot_activations_and_peaks=False,
-    #             plot_ground_truth_and_estimates=False,
-    #             use_custom_training=False,
-    #             num_chunks=i)
-    #         end_time = time.monotonic()
-    #         print(
-    #         "\n\nNum Chunks: ",i,
-    #         " Compute time: ", timedelta(seconds=end_time - start_time).total_seconds(),
-    #         " f-score: ", f,
-    #         " HDs Total Length: ", HD_len)
-    #         writer.writerow([i, f, HD_len, timedelta(seconds=end_time - start_time).total_seconds()])

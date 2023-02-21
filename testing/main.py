@@ -2,6 +2,8 @@ import csv
 import os
 import time
 from datetime import timedelta
+import sys
+sys.path.append("./models/NMF")
 from nmf_main import NmfDrum
 from xml_interface import training_files_and_mix
 
@@ -16,14 +18,14 @@ annotation_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/annot
 xml_files = [f for f in os.listdir(annotation_folder) if f.endswith('.xml')]
 
 # Create a csv file with the name of each xml file, the f-score, precision, and recall
-with open('nmf_results_same_WD_with_time.csv', 'w', newline='') as csvfile:
+with open('CHANGE_NAME.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile, delimiter=',')
     writer.writerow(['File Name', 'F-Score', 'Precision', 'Recall', 'Mix Length', 'Compute Time'])
 
     count = 1
     for xml_file in xml_files:
         start_time = time.monotonic()
-        _, f_score, precision, recall, mix_length = NmfDrum(xml_file,
+        _, f_score, precision, recall, mix_length, _ = NmfDrum([xml_file],
                     plot_activations_and_peaks=False, 
                     plot_ground_truth_and_estimates=False,
                     use_custom_training=False)

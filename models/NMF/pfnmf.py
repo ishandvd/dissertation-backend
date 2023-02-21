@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.special import rel_entr
+import sys
+sys.path.append("./utils")
 from loading_bar import *
 
 

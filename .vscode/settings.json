@@ -2,6 +2,11 @@
     "python.analysis.extraPaths": [
         "./utils",
         "./testing",
-        "./NMF"
-    ]
+        "./NMF",
+        "./models",
+        ".",
+        "./models/NMF"
+    ],
+    "appService.defaultWebAppToDeploy": "/subscriptions/971e5080-0e17-4682-a2a7-549311b6e0f4/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/id360-microtiming-dissertation-test1",
+    "appService.deploySubpath": "."
 }
