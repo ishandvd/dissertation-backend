@@ -18,7 +18,7 @@ annotation_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/annot
 xml_files = [f for f in os.listdir(annotation_folder) if f.endswith('.xml')]
 
 # Create a csv file with the name of each xml file, the f-score, precision, and recall
-with open('CHANGE_NAME.csv', 'w', newline='') as csvfile:
+with open('nmf_results_same_WD_with_time.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile, delimiter=',')
     writer.writerow(['File Name', 'F-Score', 'Precision', 'Recall', 'Mix Length', 'Compute Time'])
 

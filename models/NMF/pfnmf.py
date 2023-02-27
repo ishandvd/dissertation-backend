@@ -6,9 +6,8 @@ from loading_bar import *
 
 
 bar = SlowBar()
-goal = 0.001
 
-def PfNmf(X, param):
+def PfNmf(X, param, goal=0.001):
     """
     PfNmf(X, param) performs the PfNMF algorithm on the input matrix X.
     The algorithm is described in the paper:

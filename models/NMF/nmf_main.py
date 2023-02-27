@@ -36,14 +36,14 @@ def split(a, n):
     k, m = divmod(len(a), n)
     return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
 
-def getHD(x, method):
+def getHD(x, method, goal):
     overlap = param["windowSize"] - param["hopSize"]
     window = np.hamming(param["windowSize"])
     [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
     X = np.abs(X)
     
     if method == 'PfNmf':
-        [WD, HD, WH, HH, err] = PfNmf(X, param)
+        [WD, HD, WH, HH, err] = PfNmf(X, param, goal)
     elif method == 'NmfD':
         [PD, HD] = NmfD(X, param)
     
@@ -110,7 +110,8 @@ def NmfDrum(
     plot_activations_and_peaks=True,
     plot_ground_truth_and_estimates=True,
     use_custom_training=True,
-    num_chunks=1):
+    num_chunks=1,
+    goal=0.001):
 
     # Open files
     error, mix = open_files(filepath_list, use_custom_training)
@@ -119,7 +120,8 @@ def NmfDrum(
 
     (x, fs) = sf.read(mix)
     # Mix down to mono
-    x = np.mean(x, axis=1)
+    if len(x.shape) > 1:
+        x = np.mean(x, axis=1)
     newFs = 44100
     timeLen = len(x) / fs
     # Resample to 44100 Hz
@@ -129,7 +131,7 @@ def NmfDrum(
 
     # split x into n chunks, then stitch the activation functions together
     xs = list(split(x, num_chunks))
-    HDs = np.array(Parallel(n_jobs=-1)(delayed(getHD)(x_sub, "PfNmf") for x_sub in xs))
+    HDs = np.array(Parallel(n_jobs=-1)(delayed(getHD)(x_sub, "PfNmf", goal) for x_sub in xs))
     HD = np.concatenate(HDs, axis=1)
     (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
 
