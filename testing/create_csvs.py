@@ -6,7 +6,7 @@ from NMF.nmf_main import NmfDrum
 
 
 def num_chunks(filename):
-    with open('nmf_results_num_chunks.csv', 'w', newline='') as csvfile:
+    with open('nmf_results_num_chunks1.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow(['Num Chunks', 'F-Score', 'HDs Total Length', 'Compute Time'])
         # Parameter Optimization Over Num Chunks
