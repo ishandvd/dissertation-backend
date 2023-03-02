@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request
 import os
 import time
 from werkzeug.utils import secure_filename
@@ -8,7 +8,9 @@ from flask_cors import CORS
 import sys
 sys.path.append("./models/NMF")
 from nmf_main import NmfDrum
-
+import io
+sys.path.append("./utils")
+import flask_utils
 
 UPLOAD_FOLDER = './audio_uploads'
 
@@ -40,28 +42,34 @@ def index():
 
 @app.route('/backing-track', methods=['POST'])
 def backing():
-    print(f"{bcolors.OKGREEN}attempting to store backing track{bcolors.ENDC}")
-    print(request.files['backing_track'])
-    file = request.files['backing_track']
-    if file and allowed_file(file.filename):
-        filename = time.strftime("%Y%m%d-%H%M%S") + secure_filename(file.filename) 
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return {"status": "ok", "message": f"Successfully uploaded {filename}"}, 200
-    else:
-        return {"status": "error", "message": "Error uploading file"}, 400
+    print(f"{bcolors.OKGREEN}attempting to transcribe backing track{bcolors.ENDC}")
+    try:
+        print(request.files['backing_track'])
+        file = request.files['backing_track']
+        file_obj = io.BytesIO(file.read())
+    except Exception as e:
+        print(f"{bcolors.FAIL}error: {e}{bcolors.ENDC}")
+        return {"status": "error", "message": "Error opening backing track file"}, 500
+    
+    try: 
+        times, _, _, _, _, _ = NmfDrum(
+            filepath_list=file_obj,
+            plot_activations_and_peaks=False,
+            plot_ground_truth_and_estimates=False,
+            use_custom_training=False,
+            goal=0.05)
+    except Exception as e:
+        print(f"{bcolors.FAIL}error: {e}{bcolors.ENDC}")
+        return {"status": "error", "message": "Error transcribing backing track"}, 500
 
-
-@app.route('/audio-upload', methods=['POST'])
-def audio_upload():
-    print('Request for audio upload received', request.content_type)
-    if request.method == 'POST':
-        # check if the post request has the file part
-        print(request.files['wavfile'])
-        file = request.files['wavfile']
-        if file and allowed_file(file.filename):
-            filename = time.strftime("%Y%m%d-%H%M%S") + secure_filename(file.filename) 
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return {"status": "ok", "message": "Hello World!"}, 200
+    try:
+        output = flask_utils.initial_timings_to_json(times)
+        print("OUTPUT: ", output)
+    except Exception as e:
+        print(f"{bcolors.FAIL}error: {e}{bcolors.ENDC}")
+        return {"status": "error", "message": "Error converting timings to JSON"}, 500
+    
+    return {"status": "ok", "timings": output}, 200
 
 if __name__ == '__main__':
    app.run(debug=True)

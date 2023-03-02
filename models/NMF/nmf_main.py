@@ -10,11 +10,14 @@ from nmfd import *
 from DTW import *
 from NMF_training import *
 from xml_interface import *
+import sys
+sys.path.append("./utils")
 from measures import *
 import time
 from datetime import timedelta
 from joblib import Parallel, delayed
 import csv
+from io import BytesIO, IOBase
 
 param = {
     "WD": wd, # Set to Default data from sample_wd initially
@@ -68,6 +71,10 @@ def plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets):
 
 # Returns error message and mix file
 def open_files(filepath_list, use_custom_training):
+    # If file object
+    if isinstance(filepath_list, IOBase):
+        return "", filepath_list
+    # If list of files
     filepath = filepath_list[0]
     if filepath.endswith(".xml"):
         if not os.path.isfile(annotation_folder + filepath):
@@ -104,6 +111,8 @@ def open_files(filepath_list, use_custom_training):
     return "", mix
 
 # Give xml file, plot activations and peaks, use custom training, return times
+# Files can either be: ["WaveDrum02_03#MIX.xml"] or ["WaveDrum02_03#MIX.wav", "hh_train.wav", "kd_train.wav", "sd_train.wav"]
+# OR a file object (IOBase object)
 def NmfDrum(
     filepath_list=["WaveDrum02_03#MIX.xml"], 
     method='PfNmf',
@@ -137,7 +146,7 @@ def NmfDrum(
 
     # Can only calculate f-measure if ground truth is available
     # Can only plot ground truth if ground truth is available, else just use blanks
-    if filepath_list[0].endswith(".xml"):
+    if not isinstance(filepath_list, IOBase) and filepath_list[0].endswith(".xml"):
         (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath_list[0])
         f, precision, recall = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
     else:
