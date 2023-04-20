@@ -22,7 +22,7 @@ from io import BytesIO, IOBase
 param = {
     "WD": wd, # Set to Default data from sample_wd initially
     "windowSize": 2048,
-    "hopSize": 512,
+    "hopSize": 256,
     "lambda": [0.1200, 0.1200, 0.1200],
     "order": [0.1000, 0.1000, 0.1000],
     "maxIter": 20,
@@ -53,10 +53,10 @@ def getHD(x, method, goal):
     
     return HD
 
-def plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets):
+def plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets, f_score):
     fig2, ax2 = plt.subplots(3)
     fig2.tight_layout(pad=5.0)
-    fig2.suptitle('Ground Truth and Estimates, F-Measure: %(f).3f', fontsize=16)
+    fig2.suptitle(f'Ground Truth and Estimates, F-Measure: {np.round(f_score,3)}', fontsize=16)
     for i in range(3):
         ax2[i].scatter(times[i], np.ones(len(times[i])), c='red')
         if i == 0:
@@ -120,12 +120,12 @@ def NmfDrum(
     plot_ground_truth_and_estimates=True,
     use_custom_training=True,
     num_chunks=1,
-    goal=0.001):
+    goal=0.01):
 
     # Open files
     error, mix = open_files(filepath_list, use_custom_training)
     if error != "":
-        return [], 0, 0, 0, 0, 0
+        return [], 0, 0, 0, 0, 0, []
 
     (x, fs) = sf.read(mix)
     # Mix down to mono
@@ -142,6 +142,9 @@ def NmfDrum(
     xs = list(split(x, num_chunks))
     HDs = np.array(Parallel(n_jobs=-1)(delayed(getHD)(x_sub, "PfNmf", goal) for x_sub in xs))
     HD = np.concatenate(HDs, axis=1)
+
+
+    
     (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
 
     # Can only calculate f-measure if ground truth is available
@@ -149,13 +152,16 @@ def NmfDrum(
     if not isinstance(filepath_list, IOBase) and filepath_list[0].endswith(".xml"):
         (hh_onsets, sd_onsets, kd_onsets) = onset_times(annotation_folder + filepath_list[0])
         f, precision, recall = f_measure(times, hh_onsets, kd_onsets, sd_onsets, 0.05)
+        # want to create dictionary with f_measure at: 0.06, 0.055, 0.045, 0.04, 0.035, 0.03, 0.025, 0.02, 0.015, 0.01
+        windows = [0.06, 0.055, 0.05, 0.045, 0.04, 0.035, 0.03, 0.025, 0.02, 0.015, 0.01]
+        f_measures = [f_measure(times, hh_onsets, kd_onsets, sd_onsets, window)[0] for window in windows]
     else:
         hh_onsets, sd_onsets, kd_onsets = [], [], []
         f, precision, recall = 0, 0, 0
 
 
     if plot_ground_truth_and_estimates:
-        plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets)
+        plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets, f)
     
     if plot_activations_and_peaks or plot_ground_truth_and_estimates:
         plt.show()
@@ -163,4 +169,9 @@ def NmfDrum(
 
     mix_length = len(x) / fs
 
-    return times, f, precision, recall, mix_length, HD.shape[1]
+    return times, f, precision, recall, mix_length, HD.shape[1], f_measures
+
+
+
+if __name__ == "__main__":
+    NmfDrum()

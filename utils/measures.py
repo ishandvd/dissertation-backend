@@ -22,6 +22,9 @@ def f_measure(times, hh_onsets, kd_onsets, sd_onsets, tolerance):
     
     precision = true_positives_total / (len(times[0]) + len(times[1]) + len(times[2]))
     recall = true_positives_total / (len(hh_onsets) + len(kd_onsets) + len(sd_onsets))
-    f_measure = 2 * precision * recall / (precision + recall)
+    try:
+        f_measure = 2 * precision * recall / (precision + recall)
+    except ZeroDivisionError:
+        f_measure = 0
 
     return f_measure, precision, recall
