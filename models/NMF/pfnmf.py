@@ -14,9 +14,9 @@ def PfNmf(X, param, goal=0.001):
     "PfNMF: A Nonnegative Matrix Factorization Algorithm for the Analysis of Polyphonic Audio"
     by S. Uhlich, M. Dörfler, and M. E. P. Davies.
     """
-    WD = param['WD']
+    WD = param['WD'] # 3 x 1025
 
-    [numFreqX, numFrames] = np.shape(X)
+    [numFreqX, numFrames] = np.shape(X) 
     [numFreqD, rd] = np.shape(WD)
 
     WD_update = False

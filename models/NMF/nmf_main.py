@@ -169,7 +169,7 @@ def NmfDrum(
 
     mix_length = len(x) / fs
 
-    return times, f, precision, recall, mix_length, HD.shape[1], f_measures
+    return times, f, {"real_time": timeLen}, recall, mix_length, HD.shape[1], f_measures
 
 
 

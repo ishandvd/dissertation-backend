@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import json
 import numpy as np
 
-with open('./results/varying_windows_256.json', 'r') as fp:
+with open('./results/varying_windows_512.json', 'r') as fp:
     varying_windows = json.load(fp)
 
 windows = [0.06, 0.055, 0.05, 0.045, 0.04, 0.035, 0.03, 0.025, 0.02, 0.015, 0.01]
@@ -25,7 +25,7 @@ for i in range(len(windows)):
     average = np.mean(window_ys)
     plt.scatter([windows[i]], [average], c=colour, cmap='viridis', s=100, marker='x')
 
-plt.suptitle('F-scores at Varying Window Sizes, Hop Size=256, Goal=0.01')
+plt.suptitle('F-scores at Varying Window Sizes, Hop Size=512, Goal=0.01')
 
 # x axis should have ticks for each window size
 plt.xticks(windows)
