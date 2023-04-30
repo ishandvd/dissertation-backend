@@ -39,10 +39,10 @@ def split(a, n):
     k, m = divmod(len(a), n)
     return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
 
-def getHD(x, method, goal):
-    overlap = param["windowSize"] - param["hopSize"]
-    window = np.hamming(param["windowSize"])
-    [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
+def getHD(X, method, goal):
+    # overlap = param["windowSize"] - param["hopSize"]
+    # window = np.hamming(param["windowSize"])
+    # [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
     X = np.abs(X)
     
     if method == 'PfNmf':
@@ -139,9 +139,56 @@ def NmfDrum(
     fs = newFs
 
     # split x into n chunks, then stitch the activation functions together
-    xs = list(split(x, num_chunks))
-    HDs = np.array(Parallel(n_jobs=-1)(delayed(getHD)(x_sub, "PfNmf", goal) for x_sub in xs))
-    HD = np.concatenate(HDs, axis=1)
+    overlap = param["windowSize"] - param["hopSize"]
+    window = np.hamming(param["windowSize"])
+    [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
+    # xs = list(split(x, num_chunks))
+    xs = list(split(X.T, num_chunks))
+    if num_chunks == 1:
+        xs = [a.T for a in xs]
+    else:
+        # Calculate how much padding should be added to each chunk.
+        paddings = []
+        for i in range(len(xs)):
+            if i == 0:
+                left_padding = 0
+            else:
+                left_padding = min(200, len(xs[i - 1]))
+            if i == len(xs) - 1:
+                right_padding = 0
+            else:
+                right_padding = min(200, len(xs[i + 1]))
+            length = len(xs[i])
+            paddings.append((left_padding, length, right_padding))
+        # Add padding to each chunk
+        padded_xs = []
+        for i in range(len(xs)):
+            (left_padding, _, right_padding) = paddings[i]
+            if i == 0:
+                padded_x = [*xs[0], *xs[1][:right_padding]]
+            elif i == len(xs) - 1:
+                padded_x = [*xs[i-1][-left_padding:],*xs[i]]
+            else:
+                padded_x = [*xs[i-1][-left_padding:], *xs[i], *xs[i+1][:right_padding]]
+            padded_xs.append(padded_x)
+        # Un-Transpose each chunk
+        xs = [np.array(a).T for a in padded_xs]
+
+    HDs = Parallel(n_jobs=min(num_chunks, 6))(delayed(getHD)(x_sub, "PfNmf", goal) for x_sub in xs)
+    if num_chunks == 1:
+        HD = np.concatenate(HDs, axis=1)
+    else:
+        HDs_unpadded = []
+        # Unpad each chunk
+        for i in range(len(xs)):
+            HDs_T = [a.T for a in HDs]
+            (left_padding, length, right_padding) = paddings[i]
+            if i == len(xs) - 1:
+                HD_unpadded = HDs_T[i][left_padding:].T
+            else:
+                HD_unpadded = HDs_T[i][left_padding:-right_padding].T
+            HDs_unpadded.append(HD_unpadded)
+        HD = np.concatenate(HDs_unpadded, axis=1)
 
 
     
@@ -173,5 +220,6 @@ def NmfDrum(
 
 
 
-if __name__ == "__main__":
-    NmfDrum()
+# if __name__ == "__main__":
+#     NmfDrum(num_chunks=4)
+    # NmfDrum(num_chunks=4)
