@@ -7,10 +7,12 @@ import csv
 import pandas as pd
 import colorsys
 import numpy as np
+import scienceplots
 
+plt.style.use('science')
 
 # read in csv file with pandas and group by file name
-df = pd.read_csv('../results/compute_time_vs_f_score_several_files.csv')
+df = pd.read_csv('./results/compute_time_vs_f_score_range_of_goals.csv')
 # remove zero compute time rows
 # File Name,F-Score,KL Divergence,Compute Time
 
@@ -18,7 +20,8 @@ df = pd.read_csv('../results/compute_time_vs_f_score_several_files.csv')
 df = df[df['Compute Time'] > 0.3]
 df_grouped = df.groupby('KL Divergence')
 
-goals = [0.001, 0.002, 0.004, 0.008, 0.01, 0.02,0.04, 0.08, 0.1, 0.2, 0.4, 0.5]
+# goals = [0.001, 0.002, 0.004, 0.008, 0.01, 0.02,0.04, 0.08, 0.1, 0.2, 0.4, 0.5]
+goals = [32,64,128]
 
 
 cmap = plt.cm.Spectral

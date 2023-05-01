@@ -7,10 +7,11 @@ import csv
 import pandas as pd
 import colorsys
 import numpy as np
+import scienceplots
 
 
 # read in csv file with pandas and group by file name
-df = pd.read_csv('./results/custom_vs_non.csv')
+df = pd.read_csv('../results/custom_vs_non.csv')
 # remove zero compute time rows
 # File Name,F-Score,KL Divergence,Compute Time
 
@@ -44,7 +45,7 @@ df_grouped = df.groupby('Custom Training')
 # plt.set_cmap(cmap)
 # plt.show()
 
-
+plt.style.use('science')
 
 # Generate some example data
 default = list(df_grouped.get_group(0)['F-Score'])
@@ -61,7 +62,7 @@ ax.boxplot(data)
 ax.set_xticklabels(['Default', 'Custom Trained'])
 
 # Add title and labels
-ax.set_title('F-Score of Custom Trained vs Default Wd Matrix')
+ax.set_title('F-Score of Custom Trained vs Default $W_D$ Matrix')
 ax.set_ylabel('F-Score')
 
 # Show the plot
