@@ -41,10 +41,22 @@ for name, group in non_parallel:
         non_parallel_real_times.append(group['Real Time'].iloc[0])
 
 
+df = pd.read_csv('./results/matlab_results.csv')
+# remove zero compute time rows
+# File Name,F-Score,KL Divergence,Compute Time
+
+df = df[df['Compute Time'] > 0.3]
+df = df[df['Compute Time'] < 30]
+real_times = df['Real Time']
+compute_times = df['Compute Time']
+
+
+
 # Plot the results
 fig, ax = plt.subplots()
 ax.scatter(parallel_real_times, parallel_compute_times, c='r', label='Parallel', s=5)
 ax.scatter(non_parallel_real_times, non_parallel_compute_times, c='b', label='Non-Parallel', s=5)
+ax.scatter(real_times, compute_times, c='g', label='Baseline', s=5)
 
 # shade area between y=x and y=0
 x = np.linspace(0, 22, 100)
@@ -52,6 +64,6 @@ ax.fill_between(x, x, 0, facecolor='grey', alpha=0.5)
 ax.legend()
 ax.yaxis.set_label_text('Compute Time (s)')
 ax.xaxis.set_label_text('Audio File Duration (s)')
-ax.set_title('Compute Time vs Audio File Duration for Parallel and Non-Parallel PfNMF')
+ax.set_title('Compute Time vs Audio File Duration for Baseline, Parallel, and Non-Parallel PfNMF')
 plt.show()
 print("dummy")

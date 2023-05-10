@@ -7,11 +7,12 @@ import csv
 import pandas as pd
 import colorsys
 import numpy as np
+import json
 import scienceplots
 
 
 # read in csv file with pandas and group by file name
-df = pd.read_csv('../results/custom_vs_non.csv')
+df = pd.read_csv('./results/custom_vs_non.csv')
 # remove zero compute time rows
 # File Name,F-Score,KL Divergence,Compute Time
 
@@ -47,47 +48,71 @@ df_grouped = df.groupby('Custom Training')
 
 plt.style.use('science')
 
+def split_df(dataframe):
+    wave = np.mean(dataframe[dataframe['File Name'].str.contains('Wave')]['F-Score'])
+    techno = np.mean(dataframe[dataframe['File Name'].str.contains('Techno')]['F-Score'])
+    real = np.mean(dataframe[dataframe['File Name'].str.contains('Real')]['F-Score'])
+    all = np.mean(dataframe['F-Score'])
+    return [np.round(wave,2), np.round(techno,2), np.round(real,2), np.round(all,2)]
+
 # Generate some example data
-default = list(df_grouped.get_group(0)['F-Score'])
-custom_training = list(df_grouped.get_group(1)['F-Score'])
+default = df_grouped.get_group(0)
+custom_training = df_grouped.get_group(1)
 
-# Combine data sets into a list
-data = [default, custom_training]
+df_matlab = pd.read_csv('./results/matlab_results.csv')
+# remove zero compute time rows
+# File Name,F-Score,KL Divergence,Compute Time
 
-# Create the boxplot
-fig, ax = plt.subplots()
-ax.boxplot(data)
+df_matlab = df_matlab[df_matlab['Compute Time'] > 0.3]
+df_matlab = df_matlab[df_matlab['Compute Time'] < 30]
+df_matlab['F-Score'] = df_matlab['F-Scores'].apply(lambda x: json.loads(x)[2])
 
-# Customize the x-axis labels
-ax.set_xticklabels(['Default', 'Custom Trained'])
+# matlab = list(df_matlab['F-Scores'])
+# matlab = [json.loads(x)[2] for x in matlab]
 
-# Add title and labels
-ax.set_title('F-Score of Custom Trained vs Default $W_D$ Matrix')
-ax.set_ylabel('F-Score')
+algorithm = ("Baseline PfNMF", "PfNMF, Custom Dict.", "Constant Dict.")
+category_means = {
+    'Techno Drums': (split_df(df_matlab)[1], split_df(custom_training)[1], split_df(default)[1]),
+    'Wave Drums': (split_df(df_matlab)[0], split_df(custom_training)[0], split_df(default)[0]),
+    'Real Drums': (split_df(df_matlab)[2], split_df(custom_training)[2], split_df(default)[2]),
+    'All Drums': (split_df(df_matlab)[3], split_df(custom_training)[3], split_df(default)[3])
+}
+
+
+x = np.arange(len(algorithm))  # the label locations
+width = 0.20  # the width of the bars
+multiplier = 0
+
+fig, ax = plt.subplots(layout='constrained')
+
+for attribute, measurement in category_means.items():
+    offset = width * multiplier
+    rects = ax.bar(x + offset, measurement, width, label=attribute)
+    ax.bar_label(rects, padding=3)
+    multiplier += 1
+
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('F-score')
+ax.set_title('F-Score by Category and Algorithm')
+ax.set_xticks(x + width, algorithm)
+ax.legend(loc='upper left', ncols=3)
+ax.set_ylim(0.5, 1)
+
+plt.show()
+# # Combine data sets into a list
+# data = [np.mean(matlab), np.mean(default), np.mean(custom_training)]
+
+# # Create the boxplot
+# fig, ax = plt.subplots()
+# ax.bar(['Baseline', 'Default', 'Custom Trained'], data)
+
+# # Customize the x-axis labels
+# # ax.set_xticklabels(['Baseline', 'Default', 'Custom Trained'])
+
+# # Add title and labels
+# ax.set_yticks([0.7, 0.8, 0.9, 1])
+# ax.set_title('F-Score of Custom Trained vs Default $W_D$ Matrix')
+# ax.set_ylabel('F-Score')
 
 # Show the plot
 plt.show()
-
-# Calculate quartiles for both sets of data
-# q1_1, median_1, q3_1 = np.percentile(data1, [25, 50, 75])
-# q1_2, median_2, q3_2 = np.percentile(data2, [25, 50, 75])
-
-# # Create grouped box plot
-# fig, ax = plt.subplots()
-# ax.boxplot([data1, data2], showfliers=False)
-# ax.set_xticklabels(['Data 1', 'Data 2'])
-# ax.set_ylabel('Values')
-
-# # Add quartile lines for first set of data
-# ax.axhline(q1_1, color='r', linestyle='--')
-# ax.axhline(median_1, color='g', linestyle='-')
-# ax.axhline(q3_1, color='r', linestyle='--')
-
-# # Add quartile lines for second set of data
-# ax2 = ax.twinx()
-# ax2.axhline(q1_2, color='b', linestyle='--')
-# ax2.axhline(median_2, color='m', linestyle='-')
-# ax2.axhline(q3_2, color='b', linestyle='--')
-# ax2.set_ylim(ax.get_ylim()) # Ensure same y-axis scale as first axis
-
-# plt.show()
