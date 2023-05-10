@@ -21,7 +21,7 @@ df = df[df['Compute Time'] > 0.3]
 df_grouped = df.groupby('KL Divergence')
 
 # goals = [0.001, 0.002, 0.004, 0.008, 0.01, 0.02,0.04, 0.08, 0.1, 0.2, 0.4, 0.5]
-goals = [32,64,128]
+goals = [0.001, 0.002, 0.004, 0.008, 0.01, 0.02, 0.04, 0.08, 0.1, 0.2, 0.4, 0.8, 1, 2, 4, 8, 16,32,64,128]
 
 
 cmap = plt.cm.Spectral
@@ -32,7 +32,7 @@ fig, ax = plt.subplots()
 for name, group in df_grouped:
     kl_div = group['KL Divergence'].iloc[0]
     colour = cmap(norm(np.log(kl_div)))
-    ax.scatter(group['Compute Time'], group['F-Score'], marker='x', c=colour, label=name)
+    ax.scatter(group['Compute Time'], group['F-Score'], marker='x', c=colour, label=name,s=15)
 
 ax.legend(title="KL Div. Goal")
 # change the x scale to be logarithmic

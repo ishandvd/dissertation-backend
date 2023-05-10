@@ -18,6 +18,9 @@ from datetime import timedelta
 from joblib import Parallel, delayed
 import csv
 from io import BytesIO, IOBase
+import scienceplots
+
+plt.style.use('science')
 
 param = {
     "WD": wd, # Set to Default data from sample_wd initially
@@ -55,19 +58,30 @@ def getHD(X, method, goal):
 
 def plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets, f_score):
     fig2, ax2 = plt.subplots(3)
-    fig2.tight_layout(pad=5.0)
-    fig2.suptitle(f'Ground Truth and Estimates, F-Measure: {np.round(f_score,3)}', fontsize=16)
+    # fig2.tight_layout(pad=5.0)
+    fig2.suptitle(f'Ground Truth vs Predicted Onsets, F-Score: {np.round(f_score,3)}', fontsize=16)
+    ax2[2].set_xlabel("Time (s)")
+    dot_size = 10
     for i in range(3):
-        ax2[i].scatter(times[i], np.ones(len(times[i])), c='red')
+        # ax2[i].set_yticks(np.arange(0.95, 1.05, 3))
+        # ax2[i].scatter(times[i], np.ones(len(times[i])), c='red', label="Ground Truth")
         if i == 0:
-            ax2[i].scatter(hh_onsets, np.ones(len(hh_onsets)), c='blue')
-            ax2[i].title.set_text("HH")
+            ax2[i].scatter(times[i], np.ones(len(times[i])), c='red', label="Predicted", s=dot_size)
+            ax2[i].scatter(hh_onsets, np.ones(len(hh_onsets)), c='blue', label="Ground Truth", s=dot_size)
+            ax2[i].set_ylabel("HH", rotation='horizontal')
         elif i == 1:
-            ax2[i].scatter(kd_onsets, np.ones(len(kd_onsets)), c='blue')
-            ax2[i].title.set_text("KD")
+            ax2[1].scatter(times[2], np.ones(len(times[2])), c='red', s=dot_size)
+            ax2[i].scatter(sd_onsets, np.ones(len(sd_onsets)), c='blue', s=dot_size)
+            # ax2[i].title.set_text("SD")
+            ax2[i].set_ylabel("SD", rotation='horizontal')
         elif i == 2:
-            ax2[i].scatter(sd_onsets, np.ones(len(sd_onsets)), c='blue')
-            ax2[i].title.set_text("SD")
+            ax2[2].scatter(times[1], np.ones(len(times[1])), c='red', s=dot_size)
+            ax2[i].scatter(kd_onsets, np.ones(len(kd_onsets)), c='blue', s=dot_size)
+            # ax2[i].title.set_text("KD")
+            ax2[i].set_ylabel("KD", rotation='horizontal')
+    fig2.legend(loc="upper right")
+        
+    
 
 # Returns error message and mix file
 def open_files(filepath_list, use_custom_training):
@@ -120,7 +134,7 @@ def NmfDrum(
     plot_ground_truth_and_estimates=True,
     use_custom_training=True,
     num_chunks=1,
-    goal=0.01):
+    goal=0.04):
 
     # Open files
     error, mix = open_files(filepath_list, use_custom_training)
@@ -219,7 +233,5 @@ def NmfDrum(
     return times, f, {"real_time": timeLen}, recall, mix_length, HD.shape[1], f_measures
 
 
-
 # if __name__ == "__main__":
-#     NmfDrum(num_chunks=4)
-    # NmfDrum(num_chunks=4)
+#     NmfDrum()

@@ -8,12 +8,6 @@ from loading_bar import *
 bar = SlowBar()
 
 def PfNmf(X, param, goal=0.001):
-    """
-    PfNmf(X, param) performs the PfNMF algorithm on the input matrix X.
-    The algorithm is described in the paper:
-    "PfNMF: A Nonnegative Matrix Factorization Algorithm for the Analysis of Polyphonic Audio"
-    by S. Uhlich, M. Dörfler, and M. E. P. Davies.
-    """
     WD = param['WD'] # 3 x 1025
 
     [numFreqX, numFrames] = np.shape(X) 

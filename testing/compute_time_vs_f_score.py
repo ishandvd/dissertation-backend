@@ -19,12 +19,12 @@ xml_files = [f for f in os.listdir(annotation_folder) if f.endswith('.xml')]
 # xml_files_sample = xml_files[5:15]
 
 # Create a csv file with the name of each xml file, the f-score, precision, and recall
-with open('./results/compute_time_vs_f_score_random_baseline.csv', 'w', newline='') as csvfile:
+with open('./results/compute_time_vs_f_score_very_high.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile, delimiter=',')
     writer.writerow(['File Name','F-Score','KL Divergence','Compute Time', 'Real Time'])
     
     # Vary goal between 0.001 and 0.5
-    goals = [0.004, 0.008, 0.01, 0.02, 0.04, 0.08, 0.1, 0.2, 0.4, 0.8, 1, 2, 4, 8, 16]
+    goals = [32, 64, 128]
 
     count = 1
     for goal in goals:
