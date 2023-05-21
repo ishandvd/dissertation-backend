@@ -7,72 +7,71 @@ from loading_bar import *
 
 bar = SlowBar()
 
-def PfNmf(X, param, goal=0.001):
-    WD = param['WD'] # 3 x 1025
+
+##########################################################################################
+# HELPER FUNCTIONS
+##########################################################################################
+
+def normalize_matrix(A):
+    for i in range(np.shape(A)[1]):
+        A[:,i] = A[:,i] / np.sum(A[:,i], axis=0)
+    return A
+
+def mutiply_W_H(wd, wh, hd, hh, beta, alpha):
+    np.matmul(wd,hd) + beta * np.matmul(wh,hh)
+
+##########################################################################################
+
+# Input: X - 1025 frequency bins x N frames, WD_initial - 3 x 1025 frequency bins
+# Output: HD - 3 x N frames
+def PfNMF(X, WD_initial, goal=0.001):
+    WD = WD_initial # 3 x 1025
 
     [numFreqX, numFrames] = np.shape(X) 
     [numFreqD, rd] = np.shape(WD)
 
-    WD_update = False
-    HD_update = False
-    WH_update = False 
-    HH_update = False
 
-    WH = np.random.uniform(size=(numFreqD, param["rh"]))
-    [numFreqH, _] = np.shape(WH)
-    WH_update = True
+    alpha = (50 + rd) / rd
+    beta = 50/ (50 + rd) 
 
+    WH = np.random.uniform(size=(numFreqD, 50))
     HD = np.random.uniform(size=(rd, numFrames))
-    HD_update = True
+    HH = np.random.uniform(size=(50, numFrames))
+    # normalize W
+    WD, WH = normalize_matrix(WD), normalize_matrix(WH)
 
-    HH = np.random.uniform(size=(param["rh"], numFrames))
-    HH_update = True
-
-    alpha = (param["rh"] + rd) / rd
-    beta = param["rh"] / (param["rh"] + rd) 
-        
-    # normalize W / H matrix
-    for i in range(rd):
-        WD[:,i] = WD[:,i] / np.sum(WD[:,i], axis=0)
-    
-    for i in range(param["rh"]):
-        WH[:,i] = WH[:,i] / np.sum(WH[:,i], axis=0)
-
-    count = 0
+    iterations = 0
     rep = np.ones(shape=(numFreqX, numFrames))
-    err = [0.0]
+    error_vector = [0.0]
 
+    # We want to minimize the KL divergence between X and U
+    U = mutiply_W_H(WD, WH, HD, HH, beta, alpha)
 
-    while(count < 300): 
+    while(iterations < 100): 
 
-        approx = alpha * np.matmul(WD,HD) + beta * np.matmul(WH,HH)
+        # Update according to PfNMF procedure
+        HD = HD * (np.matmul(np.transpose(alpha * WD), (X / U)) 
+                   / (np.matmul(np.transpose(alpha * WD), rep)))
+        HH = HH * (np.matmul(np.transpose(beta * WH), (X / U)) 
+                   / np.matmul(np.transpose(beta * WH), rep))
+        WH = WH * (np.matmul(X / U, np.transpose(beta * HH)) 
+                   / np.matmul(rep, np.transpose(beta * HH)))
 
-        if HD_update:
-            HD = HD * (np.matmul(np.transpose(alpha * WD), (X / approx)) / (np.matmul(np.transpose(alpha * WD), rep) + param["sparsity"]))
+        # normalize W
+        WD, WH = normalize_matrix(WD), normalize_matrix(WH)
 
-        if HH_update:
-            HH = HH * (np.matmul(np.transpose(beta * WH), (X / approx)) / np.matmul(np.transpose(beta * WH), rep))
+        U = mutiply_W_H(WD, WH, HD, HH, beta, alpha)
 
-        if WD_update:
-            WD = WD * (np.matmul(X / approx, np.transpose(alpha * HD)) / np.matmul(rep, np.transpose(alpha * HD)))
-        
-        if WH_update:
-            WH = WH * (np.matmul(X / approx, np.transpose(beta * HH)) / np.matmul(rep, np.transpose(beta * HH)))
+        iterations += 1
+        error_vector.append(np.sum(rel_entr(X, U)))
 
-        # normalize W / H matrix
-        for i in range(rd):
-            WD[:,i] = WD[:,i] / np.sum(WD[:,i], axis=0)
-    
-        for i in range(param["rh"]):
-            WH[:,i] = WH[:,i] / np.sum(WH[:,i], axis=0)
-
-        count += 1
-        err.append(np.sum(rel_entr(X, alpha * np.matmul(WD,HD) + beta * np.matmul(WH,HH))))
-
-        if count > 1:
-            decider = np.abs((err[count - 1] - err[count - 2]) / (err[0] - err[count - 1] + np.finfo(float).tiny))
+        if iterations > 1:
+            # KL divergence
+            decider = np.abs((error_vector[iterations - 1] - error_vector[iterations - 2]) / 
+                             (error_vector[0] - error_vector[iterations - 1] + np.finfo(float).tiny))
+            # use custom loading bar to update progress
             bar.updateKL(decider, goal) 
             if decider < goal:
                 break
     
-    return [WD, HD, WH, HH, err]
+    return HD

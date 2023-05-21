@@ -1,7 +1,4 @@
 
-
-# open compute_time_vs_f_score.csv, and plot the f-score against compute time for each of the file names
-
 import matplotlib.pyplot as plt
 import csv
 import pandas as pd
@@ -64,7 +61,6 @@ df_matlab = pd.read_csv('./results/matlab_results.csv')
 # File Name,F-Score,KL Divergence,Compute Time
 
 df_matlab = df_matlab[df_matlab['Compute Time'] > 0.3]
-df_matlab = df_matlab[df_matlab['Compute Time'] < 30]
 df_matlab['F-Score'] = df_matlab['F-Scores'].apply(lambda x: json.loads(x)[2])
 
 # matlab = list(df_matlab['F-Scores'])

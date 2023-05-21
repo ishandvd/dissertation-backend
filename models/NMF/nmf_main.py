@@ -22,16 +22,11 @@ import scienceplots
 
 plt.style.use('science')
 
-param = {
+parameters = {
     "WD": wd, # Set to Default data from sample_wd initially
     "windowSize": 2048,
     "hopSize": 256,
-    "lambda": [0.1200, 0.1200, 0.1200],
-    "order": [0.1000, 0.1000, 0.1000],
-    "maxIter": 20,
-    "sparsity": 0,
-    "rhoThreshold": 0.5000,
-    "rh": 50
+    "rhoThreshold": 0.5000
 }
 
 audio_folder = r"C:/Cambridge/3rd Year/dissertation/IDMT-SMT-DRUMS-V2/audio/"
@@ -42,18 +37,10 @@ def split(a, n):
     k, m = divmod(len(a), n)
     return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
 
-def getHD(X, method, goal):
-    # overlap = param["windowSize"] - param["hopSize"]
-    # window = np.hamming(param["windowSize"])
-    # [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
+# Wrapper for PfNMF so that it can be used in parallel
+def getHD(X, goal):
     X = np.abs(X)
-    
-    if method == 'PfNmf':
-        [WD, HD, WH, HH, err] = PfNmf(X, param, goal)
-    elif method == 'NmfD':
-        [PD, HD] = NmfD(X, param)
-    
-    
+    HD = PfNMF(X, wd, goal)
     return HD
 
 def plot_ground_truths_and_estimates(times, hh_onsets, kd_onsets, sd_onsets, f_score):
@@ -120,16 +107,15 @@ def open_files(filepath_list, use_custom_training):
             print("Training files not found")
             return "Training files not found", ""
         
-        param["WD"] = getWD(hh_train, kd_train, sd_train)
+        parameters["WD"] = getWD(hh_train, kd_train, sd_train)
     
     return "", mix
 
 # Give xml file, plot activations and peaks, use custom training, return times
 # Files can either be: ["WaveDrum02_03#MIX.xml"] or ["WaveDrum02_03#MIX.wav", "hh_train.wav", "kd_train.wav", "sd_train.wav"]
 # OR a file object (IOBase object)
-def NmfDrum(
-    filepath_list=["WaveDrum02_03#MIX.xml"], 
-    method='PfNmf',
+def nmf_wrapper(
+    filepath_list=["WaveDrum02_03#MIX.xml"],
     plot_activations_and_peaks=True,
     plot_ground_truth_and_estimates=True,
     use_custom_training=True,
@@ -153,9 +139,9 @@ def NmfDrum(
     fs = newFs
 
     # split x into n chunks, then stitch the activation functions together
-    overlap = param["windowSize"] - param["hopSize"]
-    window = np.hamming(param["windowSize"])
-    [X,f,t] = mlab.specgram(x, NFFT=param["windowSize"], window=window, noverlap=overlap, mode="complex")
+    overlap = parameters["windowSize"] - parameters["hopSize"]
+    window = np.hamming(parameters["windowSize"])
+    [X,f,t] = mlab.specgram(x, NFFT=parameters["windowSize"], window=window, noverlap=overlap, mode="complex")
     # xs = list(split(x, num_chunks))
     xs = list(split(X.T, num_chunks))
     if num_chunks == 1:
@@ -206,7 +192,7 @@ def NmfDrum(
 
 
     
-    (times, pxs) = onset_detection(HD, fs, param, plot_activations_and_peaks)
+    (times, pxs) = onset_detection(HD, fs, parameters, plot_activations_and_peaks)
 
     # Can only calculate f-measure if ground truth is available
     # Can only plot ground truth if ground truth is available, else just use blanks
