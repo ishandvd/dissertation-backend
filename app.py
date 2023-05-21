@@ -1,75 +1,35 @@
-from datetime import datetime
-from flask import Flask, request
-import os
-import time
-from werkzeug.utils import secure_filename
-from flask_socketio import SocketIO, emit
+from flask import Flask, request,jsonify
+from flask_socketio import SocketIO,emit
 from flask_cors import CORS
-import sys
-sys.path.append("./models/NMF")
-from nmf_main import NmfDrum
-import io
-sys.path.append("./utils")
-import flask_utils
-
-UPLOAD_FOLDER = './audio_uploads'
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = 'secret!'
 CORS(app,resources={r"/*":{"origins":"*"}})
-ALLOWED_EXTENSIONS = {'wav'}
+socketio = SocketIO(app,cors_allowed_origins="*")
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+@app.route("/http-call")
+def http_call():
+    """return JSON with string data as the value"""
+    data = {'data':'This text was fetched using an HTTP call to server on render'}
+    return jsonify(data)
 
+@socketio.on("connect")
+def connected():
+    """event listener when client connects to the server"""
+    print(request.sid)
+    print("client has connected")
+    emit("connect",{"data":f"id: {request.sid} is connected"})
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+@socketio.on('backing-track')
+def handle_backing_track(data):
+    print("Recieved backing track via the socket")
+    emit("comparison",{'data':"got your backing track",'id':request.sid})
 
-@app.route('/')
-def index():
-   print('Request for index page received')
-   return {"status": "ok", "message": "Hello World!"}
-
-@app.route('/backing-track', methods=['POST'])
-def backing():
-    print(f"{bcolors.OKGREEN}attempting to transcribe backing track{bcolors.ENDC}")
-    try:
-        print(request.files['backing_track'])
-        file = request.files['backing_track']
-        file_obj = io.BytesIO(file.read())
-    except Exception as e:
-        print(f"{bcolors.FAIL}error: {e}{bcolors.ENDC}")
-        return {"status": "error", "message": "Error opening backing track file"}, 500
-    
-    try: 
-        times, _, _, _, _, _ = NmfDrum(
-            filepath_list=file_obj,
-            plot_activations_and_peaks=False,
-            plot_ground_truth_and_estimates=False,
-            use_custom_training=False,
-            goal=0.05)
-    except Exception as e:
-        print(f"{bcolors.FAIL}error: {e}{bcolors.ENDC}")
-        return {"status": "error", "message": "Error transcribing backing track"}, 500
-
-    try:
-        output = flask_utils.initial_timings_to_json(times)
-        print("OUTPUT: ", output)
-    except Exception as e:
-        print(f"{bcolors.FAIL}error: {e}{bcolors.ENDC}")
-        return {"status": "error", "message": "Error converting timings to JSON"}, 500
-    
-    return {"status": "ok", "timings": output}, 200
+@socketio.on("disconnect")
+def disconnected():
+    """event listener when client disconnects to the server"""
+    print("user disconnected")
+    emit("disconnect",f"user {request.sid} disconnected",broadcast=True)
 
 if __name__ == '__main__':
-   app.run(debug=True)
+    socketio.run(app, debug=True,port=5001)

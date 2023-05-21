@@ -133,7 +133,7 @@ def NmfDrum(
     plot_activations_and_peaks=True,
     plot_ground_truth_and_estimates=True,
     use_custom_training=True,
-    num_chunks=1,
+    num_chunks=6,
     goal=0.04):
 
     # Open files
@@ -233,5 +233,5 @@ def NmfDrum(
     return times, f, {"real_time": timeLen}, recall, mix_length, HD.shape[1], f_measures
 
 
-# if __name__ == "__main__":
-#     NmfDrum()
+if __name__ == "__main__":
+    NmfDrum()
